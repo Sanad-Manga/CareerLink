@@ -143,6 +143,8 @@ Starts the API and a local MongoDB container together. API available at `http://
 | `JWT_SECRET` | Secret key for signing JWTs |
 | `JWT_EXPIRE` | JWT expiry (e.g. `7d`) |
 | `ADMIN_REGISTRATION_SECRET` | Secret required to register admin accounts |
+| `SEED_ADMIN_EMAIL` | Admin email for `npm run seed` (required by the seed script) |
+| `SEED_ADMIN_PASSWORD` | Admin password for `npm run seed`, min 8 chars (required by the seed script) |
 | `HF_TOKEN` | HuggingFace API token |
 | `EMAIL_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
 | `EMAIL_PORT` | SMTP port (e.g. `587`) |
@@ -194,10 +196,13 @@ Uses an in-memory MongoDB instance — no external DB required. Covers auth, job
 ## Seeding the Database
 
 ```bash
-npm run seed
+SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD=your-strong-password npm run seed
 ```
 
-Creates sample users, jobs, and applications for development.
+Creates a single admin account (`role: admin`, `status: approved`) from `SEED_ADMIN_EMAIL`
+and `SEED_ADMIN_PASSWORD`. Both are required — the script refuses to run if either is unset.
+If an account with that email already exists, it is left untouched (no password reset).
+Running with `NODE_ENV=production` is refused unless you also pass `--force`.
 
 ---
 

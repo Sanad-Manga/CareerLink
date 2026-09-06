@@ -1,63 +1,73 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 const dns = require("dns");
 const dotenv = require("dotenv");
 const path = require("path");
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-
 const User = require("./models/User");
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-const adminData = {
-  name: "Admin User",
-  email: "admin@giu.edu",
-  password: "adminpass123",
-  role: "admin",
-  status: "approved",
+const force = process.argv.includes("--force");
+
+const fail = (message) => {
+  console.error(`Seed aborted: ${message}`);
+  process.exit(1);
 };
 
 const createAdminUser = async () => {
-  try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI is not defined");
-    }
+  if (!process.env.MONGO_URI) {
+    fail("MONGO_URI is not defined.");
+  }
 
+  const email = process.env.SEED_ADMIN_EMAIL;
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    fail(
+      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must both be set. " +
+        "See .env.example."
+    );
+  }
+
+  if (password.length < 8) {
+    fail("SEED_ADMIN_PASSWORD must be at least 8 characters.");
+  }
+
+  if (process.env.NODE_ENV === "production" && !force) {
+    fail(
+      "Refusing to seed with NODE_ENV=production. Re-run with --force if you " +
+        "really mean to touch the production database."
+    );
+  }
+
+  try {
     await mongoose.connect(process.env.MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
     console.log("MongoDB connected.");
 
-    const existing = await User.findOne({ email: adminData.email });
+    const existing = await User.findOne({ email });
 
     if (existing) {
-      // Reset password to known default without double-hashing
-      const salt = await bcrypt.genSalt(10);
-      existing.password = await bcrypt.hash(adminData.password, salt);
-      existing.name = adminData.name;
-      existing.role = adminData.role;
-      existing.status = "approved";
-      // Use updateOne to bypass pre-save hook since we already hashed
-      await User.updateOne(
-        { email: adminData.email },
-        {
-          name: existing.name,
-          role: existing.role,
-          status: existing.status,
-          password: existing.password,
-        }
+      console.log(
+        `Admin "${email}" already exists — leaving it untouched. ` +
+          "Delete the account manually if you need to re-seed it."
       );
-      console.log("Admin already exists. Password reset to default.");
-    } else {
-      // Create new admin user
-      await User.create({
-        ...adminData,
-      });
-      console.log("Admin user created successfully.");
+      return;
     }
+
+    // pre-save hook on the User model hashes the password
+    await User.create({
+      name: "Admin User",
+      email,
+      password,
+      role: "admin",
+      status: "approved",
+    });
+    console.log(`Admin user "${email}" created successfully.`);
   } catch (error) {
     console.error("Error creating admin user:", error);
     process.exitCode = 1;
