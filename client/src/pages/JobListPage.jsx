@@ -95,6 +95,7 @@ export default function JobListPage() {
     }
   }, [keyword, location, type, status, page, navigate, isAuthenticated])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- run the data fetch on mount and whenever the query changes
   useEffect(() => { fetchJobs() }, [fetchJobs])
 
   // Close dropdowns when clicking outside
@@ -109,6 +110,7 @@ export default function JobListPage() {
 
   // Keep draft in sync when URL changes (back/forward browser nav)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resync the form draft to the URL params on browser back/forward
     setDraft({ keyword, location, type, status })
   }, [keyword, location, type, status])
 

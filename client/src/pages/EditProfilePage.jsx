@@ -85,7 +85,7 @@ export default function EditProfilePage() {
           setTimeout(() => navigate('/profile'), 1500);
           return;
         }
-      } catch (e) {}
+      } catch { /* ignore — fall through to the generic error below */ }
       setError(err.response?.data?.message || 'Update failed');
     } finally {
       setLoading(false);

@@ -4,7 +4,6 @@ import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { CATEGORY_COLORS } from '../utils/categoryColors'
 import PendingApprovalBanner from '../components/PendingApprovalBanner'
-import JobForm from '../components/JobForm'
 
 const JOB_TYPES = ['full-time', 'part-time', 'internship', 'contract']
 

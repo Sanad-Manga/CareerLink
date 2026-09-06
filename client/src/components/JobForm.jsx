@@ -19,8 +19,6 @@ const JobForm = ({
   submitLabel,
   cancelLabel,
   onCancel,
-  showStatus = false,
-  showAiNotice = false,
   jobCategory,
 }) => {
   const [dirty, setDirty] = useState(false)
@@ -39,7 +37,7 @@ const JobForm = ({
       e.returnValue = ''
       return ''
     }
-    const handlePop = (e) => {
+    const handlePop = () => {
       if (!dirty) return
       const ok = window.confirm('You have unsaved changes. Are you sure you want to leave?')
       if (!ok) window.history.pushState(null, '')
@@ -156,7 +154,7 @@ const JobForm = ({
           {onCancel && (
             <button
               type="button"
-              onClick={(e)=>{ if(dirty){ if(!window.confirm('You have unsaved changes. Cancel without saving?')) return } onCancel() }}
+              onClick={()=>{ if(dirty){ if(!window.confirm('You have unsaved changes. Cancel without saving?')) return } onCancel() }}
               style={s.cancelBtn}
               onMouseEnter={e => e.currentTarget.style.filter = 'brightness(0.97)'}
               onMouseLeave={e => e.currentTarget.style.filter = 'none'}

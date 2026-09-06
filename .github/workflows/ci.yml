@@ -30,9 +30,6 @@ jobs:
   lint:
     name: Lint (client)
     runs-on: ubuntu-latest
-    # Non-blocking for now: the client has pre-existing eslint errors.
-    # Tracked separately; remove once the backlog is clear so this becomes a real gate.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4

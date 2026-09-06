@@ -19,6 +19,7 @@ const RecruiterDashboard = () => {
   const isPending = user?.status === "pending";
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pending recruiters skip the fetch; clear the initial loading flag so the banner renders
     if (isPending) { setLoading(false); return; }
     const fetchMyJobs = async () => {
       try {

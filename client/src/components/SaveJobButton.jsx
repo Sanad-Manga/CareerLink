@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import api from '../services/api'
 
 const BookmarkIcon = ({ filled }) => (
@@ -30,7 +30,7 @@ const SaveJobButton = ({ jobId, status, initialSaved = false, jobStatus }) => {
     
     try {
       await api.post(`/jobs/${jobId}/save`)
-    } catch (err) {
+    } catch {
       setSaved(prev)
       localStorage.setItem(storageKey, String(prev))
     } finally {

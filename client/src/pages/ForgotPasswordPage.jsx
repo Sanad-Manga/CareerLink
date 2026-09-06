@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import styles from '../styles/ForgotPasswordPage.module.css';
@@ -6,18 +6,11 @@ import styles from '../styles/ForgotPasswordPage.module.css';
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState('email'); // 'email' | 'otp'
-  const [email, setEmail] = useState('');
+  // Prefill from a previous attempt (set in localStorage elsewhere in the flow)
+  const [email, setEmail] = useState(() => localStorage.getItem('resetEmail') || '');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Load email from localStorage on mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('resetEmail');
-    if (savedEmail) {
-      setEmail(savedEmail);
-    }
-  }, []);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();

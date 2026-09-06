@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { CATEGORY_COLORS } from '../utils/categoryColors'
 import SaveJobButton from '../components/SaveJobButton'
 import ApplicationStatusBadge from '../components/ApplicationStatusBadge'
 import Spinner from '../components/Spinner'
-import Modal from '../components/Modal'
 
 export default function JobDetailPage() {
   const { id } = useParams()
@@ -168,7 +166,6 @@ export default function JobDetailPage() {
 
   if (!job) return null
 
-  const categoryColor = CATEGORY_COLORS[job.category] ?? 'gray'
   const recruiter     = job.createdBy ?? job.recruiter ?? job.postedBy ?? null
   const recruiterStatus = recruiter?.status
   const recruiterApproved = recruiterStatus ? recruiterStatus === 'approved' : true
