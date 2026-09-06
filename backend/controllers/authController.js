@@ -6,6 +6,7 @@ const blacklist = require("../middleware/tokenBlacklist");
 const validator = require("validator");
 const xss = require("xss");
 const { sendResetEmail, sendOtpEmail } = require("../services/emailService");
+const { OTP_EXPIRY_MINUTES } = require("../config/constants");
 
 // Generate JWT Token
 const generateToken = (user) => {
@@ -132,7 +133,8 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const normalizedEmail = validator.normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
     if (!user) {
       return res.status(401).json({
@@ -199,7 +201,8 @@ exports.forgotPassword = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = validator.normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail });
 
     // Always return 200 to avoid email enumeration
     if (!user) {
@@ -213,7 +216,7 @@ exports.forgotPassword = async (req, res, next) => {
     const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.otp = otpHash;
-    user.otpExpire = new Date(Date.now() + 2 * 60 * 1000);
+    user.otpExpire = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     await user.save();
 
     try {
@@ -249,8 +252,9 @@ exports.verifyOtp = async (req, res, next) => {
 
     const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
+    const normalizedEmail = validator.normalizeEmail(email);
     const user = await User.findOne({
-      email,
+      email: normalizedEmail,
       otp: otpHash,
       otpExpire: { $gt: Date.now() },
     }).select("+otp +otpExpire");

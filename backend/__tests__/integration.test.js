@@ -176,6 +176,25 @@ describe('Auth — Login', () => {
 
     expect(res.status).toBe(401);
   });
+
+  it('logs in with the original mixed-case, dotted email used at register', async () => {
+    const original = 'Foo.Bar@Gmail.com';
+    const password = USERS.jobSeeker.password;
+
+    const reg = await registerUser({
+      name: 'Foo Bar',
+      email: original,
+      password,
+      role: 'jobSeeker',
+    });
+    expect(reg.status).toBe(201);
+
+    const res = await loginUser(original, password);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.token).toBeDefined();
+  });
 });
 
 // ─── Create Job with AI Category ─────────────────────────────────────────────

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { OTP_EXPIRY_MINUTES } = require('../config/constants');
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -103,13 +104,13 @@ const sendOtpEmail = async (email, otp) => {
             <p style="margin:0 0 8px;font-size:14px;color:#64748B;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">Password Reset</p>
             <h1 style="margin:0 0 20px;font-size:26px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">Your one-time code</h1>
             <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.6;">
-              We received a request to reset your GIU Nexus password. Use the code below to continue. It expires in <strong>2 minutes</strong>.
+              We received a request to reset your GIU Nexus password. Use the code below to continue. It expires in <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
             </p>
 
             <!-- OTP Box -->
             <div style="background:#F8FAFF;border:2px dashed #BFDBFE;border-radius:12px;padding:28px 20px;text-align:center;margin-bottom:28px;">
               <div style="font-size:42px;font-weight:800;letter-spacing:14px;color:#1E40AF;font-family:'Courier New',monospace;">${otp}</div>
-              <p style="margin:12px 0 0;font-size:12px;color:#94A3B8;">Valid for 2 minutes</p>
+              <p style="margin:12px 0 0;font-size:12px;color:#94A3B8;">Valid for ${OTP_EXPIRY_MINUTES} minutes</p>
             </div>
 
             <div style="background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:6px;padding:12px 16px;margin-bottom:28px;">
