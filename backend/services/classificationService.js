@@ -5,8 +5,9 @@ const CANDIDATE_LABELS = ['Frontend', 'Backend', 'AI/ML', 'DevOps', 'Data Engine
 async function classifyJobCategory(title, description) {
   try {
     const input = title ? `${title}. ${description}` : description;
-    const result = await hf.zeroShotClassification({
+        const result = await hf.zeroShotClassification({
       model: 'facebook/bart-large-mnli',
+      provider: 'hf-inference',
       inputs: input,
       parameters: { candidate_labels: CANDIDATE_LABELS },
     });

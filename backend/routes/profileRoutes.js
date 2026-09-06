@@ -137,14 +137,14 @@ router.patch('/change-password', protect, changePassword);
  * @swagger
  * /profile/extract-skills:
  *   post:
- *     summary: Extract skills from bio using AI NER model (Job Seeker only)
+  *     summary: Extract skills from bio using keyword matching (Job Seeker only)
  *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
  *     description: |
- *       Reads the job seeker's bio from the database and runs it through the
- *       HuggingFace `dslim/bert-base-NER` model to extract skills.
- *       The cleaned results are saved back to `user.skills`. No request body required.
+ *       Reads the job seeker's bio from the database and matches it against
+ *       a curated list of known technical skills and tools using regex matching.
+ *       The matched results are saved back to `user.skills`. No request body required.
  *     responses:
  *       200:
  *         description: Skills extracted and saved to profile

@@ -50,10 +50,21 @@ const jobPostSchema = new mongoose.Schema({
         enum: ["open", "closed"],
         default: "open",
     },
+
+        embedding: {
+        type: [Number],
+        select: false,
+    },
+    
     createdAt: {
         type: Date,
         default: Date.now,
     },
+
+
+    
+
+
 });
 module.exports = mongoose.model("JobPost", jobPostSchema);
 

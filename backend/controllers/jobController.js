@@ -4,6 +4,26 @@ const User = require('../models/User');
 const { classifyJobCategory } = require('../services/classificationService');
 const hf = require('../services/hfService');
 // ─── GET /api/v1/jobs ─────────────────────────────────────────────────────────
+const getJobEmbedding = async (title, requirements) => {
+  try {
+    const text = `${title} ${requirements.join(' ')}`;
+    const result = await hf.featureExtraction({
+      model: 'sentence-transformers/all-MiniLM-L6-v2',
+      provider: 'hf-inference',
+      inputs: text,
+    });
+    if (!Array.isArray(result) || typeof result[0] !== 'number') {
+      console.error('[getJobEmbedding] Unexpected embedding shape:', JSON.stringify(result).slice(0, 100));
+      return null;
+    }
+    return result;
+  } catch (err) {
+    console.error('[getJobEmbedding] HF call failed:', err.message);
+    return null;
+  }
+};
+
+
 const getJobs = async (req, res, next) => {
   try {
     const { keyword, location, type, status, page = 1, limit = 10 } = req.query;
@@ -77,8 +97,9 @@ const createJob = async (req, res, next) => {
     }
 
     const category = await classifyJobCategory(title, description);
+    const embedding = await getJobEmbedding(title, requirements);
 
-    const job = await JobPost.create({ ...req.body, category, createdBy: req.user._id });
+    const job = await JobPost.create({ ...req.body, category, embedding, createdBy: req.user._id });
     res.status(201).json({ success: true, job });
   } catch (err) { next(err); }
 };
@@ -103,7 +124,12 @@ const updateJob = async (req, res, next) => {
     if (job.createdBy.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: 'Not authorised to edit this job' });
 
-    if (req.body.description) req.body.category = await classifyJobCategory(req.body.title || job.title, req.body.description);
+    if (req.body.description || req.body.title) {
+      req.body.category = await classifyJobCategory(req.body.title || job.title, req.body.description || job.description);
+    }
+    if (req.body.title || req.body.requirements) {
+      req.body.embedding = await getJobEmbedding(req.body.title || job.title, req.body.requirements || job.requirements);
+    }
     const updated = await JobPost.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json({ success: true, job: updated });
   } catch (err) { next(err); }
@@ -130,25 +156,30 @@ const deleteJob = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+
 // ─── GET /api/v1/jobs/recommended ────────────────────────────────────────────
 // Private (jobSeeker only). Returns open jobs ranked by cosine similarity.
 const getRecommendedJobs = async (req, res, next) => {
   try {
     const user = req.user;
-    const openJobs = await JobPost.find({ status: 'open' });
+    const openJobs = await JobPost.find({ status: 'open' }).select('+embedding');
 
     if (!openJobs.length) return res.status(200).json({ success: true, jobs: [] });
 
-    if (!user.skills.length) return res.status(200).json({ success: true, jobs: openJobs });
+    if (!user.skills.length) {
+      const jobs = openJobs.map(job => ({ ...job.toObject(), score: null, scored: false }));
+      return res.status(200).json({ success: true, jobs });
+    }
 
     const studentText = user.skills.join(', ');
-    const jobTexts = openJobs.map(job => `${job.title} ${job.requirements.join(' ')}`);
 
     try {
-      const embeddings = await hf.featureExtraction({
+        const studentResult = await hf.featureExtraction({
         model: 'sentence-transformers/all-MiniLM-L6-v2',
-        inputs: [studentText, ...jobTexts],
+        provider: 'hf-inference',
+        inputs: studentText,
       });
+      const studentVec = studentResult;
 
       const cosineSimilarity = (a, b) => {
         const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
@@ -157,19 +188,31 @@ const getRecommendedJobs = async (req, res, next) => {
         return dot / (magA * magB);
       };
 
-      const studentVec = embeddings[0];
+      // Jobs missing a cached embedding (created before this feature, or a failed embed) get one now
+      const missing = openJobs.filter(job => !job.embedding || !job.embedding.length);
+      for (const job of missing) {
+        const emb = await getJobEmbedding(job.title, job.requirements);
+        if (emb) {
+          job.embedding = emb;
+          await JobPost.findByIdAndUpdate(job._id, { embedding: emb });
+        }
+      }
+
       const ranked = openJobs
-        .map((job, i) => ({ ...job.toObject(), score: cosineSimilarity(studentVec, embeddings[i + 1]) }))
-        .sort((a, b) => b.score - a.score);
+        .map(job => {
+          if (!job.embedding || !job.embedding.length) {
+            return { ...job.toObject(), score: null, scored: false };
+          }
+          const score = cosineSimilarity(studentVec, job.embedding);
+          return { ...job.toObject(), score, scored: true };
+        })
+        .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
-      // Normalize so the top match = 1.0 (100%) — raw cosine similarity is always low
-      const maxScore = ranked[0]?.score || 1;
-      const normalized = ranked.map(j => ({ ...j, score: maxScore > 0 ? j.score / maxScore : 0 }));
-
-      return res.status(200).json({ success: true, jobs: normalized });
+      return res.status(200).json({ success: true, jobs: ranked });
     } catch (hfErr) {
       console.error('[getRecommendedJobs] HF call failed:', hfErr.message);
-      return res.status(200).json({ success: true, jobs: openJobs });
+      const jobs = openJobs.map(job => ({ ...job.toObject(), score: null, scored: false }));
+      return res.status(200).json({ success: true, jobs });
     }
   } catch (err) { next(err); }
 };
@@ -241,8 +284,9 @@ Requirements: ${job.requirements.join(', ')}
 
 Applicant Background: ${user.bio}`;
 
-    const result = await hf.chatCompletion({
+        const result = await hf.chatCompletion({
       model: 'Qwen/Qwen2.5-7B-Instruct',
+      provider: 'hf-inference',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 450,
       temperature: 0.7,

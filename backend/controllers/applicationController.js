@@ -1,4 +1,4 @@
-const Application = require("../models/Application");
+  const Application = require("../models/Application");
 const JobPost = require("../models/JobPost");
 
 const getAllApplications = async (req, res, next) => {
@@ -43,7 +43,7 @@ const applyToJob = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
 
-    if (job.status !== "open") {
+        if (job.status !== "open") {
       return res.status(400).json({ success: false, message: "This job is no longer accepting applications" });
     }
 
@@ -52,12 +52,21 @@ const applyToJob = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "You have already applied to this job" });
     }
 
+    const applicantCount = await Application.countDocuments({ job: jobId });
+    if (applicantCount >= job.totalSlots) {
+      return res.status(400).json({ success: false, message: "This job has reached its applicant limit" });
+    }
+
     const application = await Application.create({
       user: req.user._id,
       job: jobId,
       coverLetter: coverLetter || "",
       status: "pending",
     });
+
+    if (applicantCount + 1 >= job.totalSlots) {
+      await JobPost.findByIdAndUpdate(jobId, { status: "closed" });
+    }
 
     return res.status(201).json({ success: true, message: "Application submitted", application });
   } catch (err) {
