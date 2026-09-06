@@ -1,3 +1,3 @@
-const { HfInference } = require("@huggingface/inference")
-const hf = new HfInference(process.env.HF_TOKEN)
-module.exports = hf
+const { InferenceClient } = require("@huggingface/inference");
+const hf = new InferenceClient(process.env.HF_TOKEN);
+module.exports = hf;

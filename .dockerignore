@@ -1,6 +1,36 @@
+# The image only needs package*.json, backend/, and .env.example (see Dockerfile).
+# Everything else is kept out of the build context.
+
+# Dependencies / build output
 node_modules
-npm-debug.log
+**/node_modules
+client
+coverage
+npm-debug.log*
+
+# VCS / CI / editor
 .git
 .gitignore
-coverage
+.github
+.vscode
+.wolf
+
+# Secrets and local env
 .env
+**/.env
+.env.*
+!.env.example
+
+# Docs, tests, tooling not used at runtime
+*.md
+docs
+tasks
+postman
+**/__tests__
+jest.config.js
+
+# Docker / compose files themselves
+Dockerfile
+.dockerignore
+docker-compose.yml
+railway.toml

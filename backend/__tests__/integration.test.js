@@ -29,7 +29,6 @@ jest.mock('../services/hfService', () => {
 });
 
 jest.mock('../services/emailService', () => ({
-  sendResetEmail: jest.fn().mockResolvedValue(undefined),
   sendOtpEmail: jest.fn().mockResolvedValue(undefined),
 }));
 

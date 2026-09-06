@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const blacklist = require("../middleware/tokenBlacklist");
 const validator = require("validator");
 const xss = require("xss");
-const { sendResetEmail, sendOtpEmail } = require("../services/emailService");
+const { sendOtpEmail } = require("../services/emailService");
 const { OTP_EXPIRY_MINUTES } = require("../config/constants");
 
 // Generate JWT Token

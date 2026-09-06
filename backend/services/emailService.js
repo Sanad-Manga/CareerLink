@@ -14,62 +14,6 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 10000,
 });
 
-const sendResetEmail = async (email, resetToken, resetLink) => {
-  try {
-    const mailOptions = {
-      from: `"GIU Nexus" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Reset Your GIU Nexus Password',
-      html: `
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F1F5F9;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-        <tr>
-          <td bgcolor="#1E40AF" style="background:linear-gradient(135deg,#1E40AF,#2563EB);padding:32px 40px;text-align:center;">
-            <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">GIU <span style="color:#34D399;">Nexus</span></span>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:40px 40px 32px;">
-            <h1 style="margin:0 0 16px;font-size:24px;font-weight:800;color:#0F172A;">Reset your password</h1>
-            <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.6;">
-              Click the button below to set a new password. This link is valid for <strong>10 minutes</strong>.
-            </p>
-            <div style="text-align:center;margin-bottom:28px;">
-              <a href="${resetLink}" style="display:inline-block;padding:14px 32px;background:#2563EB;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:700;">Reset Password</a>
-            </div>
-            <p style="margin:0 0 8px;font-size:13px;color:#94A3B8;">Or paste this link in your browser:</p>
-            <p style="margin:0 0 24px;font-size:12px;color:#64748B;word-break:break-all;">${resetLink}</p>
-            <div style="background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:6px;padding:12px 16px;">
-              <p style="margin:0;font-size:13px;color:#92400E;"><strong>Didn't request this?</strong> You can safely ignore this email.</p>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:20px 40px;text-align:center;">
-            <p style="margin:0;font-size:12px;color:#94A3B8;">© ${new Date().getFullYear()} GIU Nexus · German International University</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`Reset email sent to ${email}`);
-  } catch (err) {
-    console.error(`Error sending email: ${err.message}`);
-    throw err;
-  }
-};
-
 const sendOtpEmail = async (email, otp) => {
   try {
     const mailOptions = {
@@ -148,6 +92,5 @@ const sendOtpEmail = async (email, otp) => {
 };
 
 module.exports = {
-  sendResetEmail,
   sendOtpEmail,
 };
