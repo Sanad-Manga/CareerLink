@@ -2,6 +2,8 @@
 
 A RESTful backend API connecting German International University students with internships and jobs using AI-powered skill matching, job classification, and recommendations.
 
+> **Status.** Built 2025–2026 as a nine-person university project. Actively maintained since September 2026 by Ahmed Sanad, Ziad Mohsen, and Abdelrahman ElGabarty.
+
 ## Contributors
 
 - [Ahmed Sanad](https://github.com/Sanad-Manga/GIU-Nexus/commits?author=Sanad-Manga)
@@ -18,16 +20,17 @@ A RESTful backend API connecting German International University students with i
 
 ## Features
 
-- **Auth** — Register, login, logout with JWT. Forgot password via OTP email (Nodemailer). JWT blacklisting on logout.
+- **Auth** — Register, login, logout with JWT. Forgot password via OTP email (Nodemailer). JWT blacklisting on logout (in-memory — cleared on restart).
 - **Role-based access** — Job Seeker, Recruiter, Admin with route-level authorization.
 - **Recruiter approval** — Recruiters start as `pending` and must be approved by an admin before posting jobs.
 - **Jobs** — Create, filter, update, delete. AI auto-assigns category (HuggingFace zero-shot classification). Save/unsave jobs.
 - **Applications** — Apply to jobs, track status (pending → shortlisted / rejected). Recruiters manage applicants per job.
-- **Profile** — View and update profile. AI extracts skills from bio (HuggingFace NER). Profile picture upload via Cloudinary.
+- **Profile** — View and update profile. Skills are extracted from the bio by keyword matching against a curated tech-term list. Profile picture upload via Cloudinary.
 - **Recommendations** — AI-powered job recommendations based on user skills (sentence-transformers + cosine similarity).
+- **Cover letters** — AI-drafted cover letter per job for job seekers (HuggingFace chat completion).
 - **Admin** — Platform stats, user management, recruiter approval/rejection.
-- **Rate limiting** — Auth routes limited to 10 requests per 15 minutes per IP.
-- **Security** — Helmet, CORS, XSS sanitization, input validation, mongo-sanitize.
+- **Rate limiting** — Auth routes limited to 10 requests per 15 minutes per IP (override with `RATE_LIMIT_MAX`).
+- **Security** — Helmet and CORS. Registration inputs are validated and escaped (`validator` + `xss`); broader request sanitization is not yet wired.
 - **Swagger docs** — Interactive API docs at `/api-docs`.
 - **Tests** — Jest integration test suite with MongoDB in-memory server.
 
@@ -35,22 +38,26 @@ A RESTful backend API connecting German International University students with i
 
 ## AI Features
 
-Three HuggingFace-powered features are integrated into the platform:
+Three HuggingFace-powered features, plus local keyword-based skill extraction:
 
 ### 1. Job Category Classification
 **Model:** `facebook/bart-large-mnli` (zero-shot classification)
 
-When a recruiter posts or updates a job, the title and description are sent to HuggingFace. The model classifies the job into one of: `Backend`, `Frontend`, `AI/ML`, `DevOps`, `Data Engineering`, `Mobile`, `Security`, or `Other` — automatically, no manual tagging needed.
+When a recruiter posts or updates a job, the title and description are sent to HuggingFace. The model classifies the job into one of: `Frontend`, `Backend`, `AI/ML`, `DevOps`, `Data Engineering`, or `Other` — automatically, no manual tagging needed. On any HuggingFace error the category falls back to `Other`.
 
-### 2. Skill Extraction from Bio
-**Model:** `dslim/bert-base-NER` (Named Entity Recognition)
-
-Job seekers write a bio and hit the extract-skills endpoint. The NER model scans the text and pulls out technical skills and tools (e.g. React, Python, Docker). These are saved to the user's profile and used for recommendations.
-
-### 3. AI Job Recommendations
+### 2. AI Job Recommendations
 **Model:** `sentence-transformers/all-MiniLM-L6-v2` (sentence embeddings)
 
 When a job seeker requests recommendations, their skills are encoded into a vector. All open jobs are also encoded. Cosine similarity is computed between the user vector and each job vector, and the top matches are returned ranked by relevance.
+
+### 3. Cover Letter Drafting
+**Model:** `Qwen/Qwen2.5-7B-Instruct` (chat completion)
+
+A job seeker with a bio can generate a first-draft cover letter for a specific job. The job details and the applicant's bio are sent as a prompt; the model returns a draft the user can edit before applying.
+
+### Skill Extraction from Bio (no model)
+
+`POST /api/v1/profile/extract-skills` scans the user's bio with a curated list of technical keywords (languages, frameworks, tools, stacks) and case-insensitive token matching — no HuggingFace call. Matches are normalised to canonical names, saved to the profile, and used for recommendations.
 
 ---
 
@@ -80,7 +87,7 @@ When a job seeker requests recommendations, their skills are encoded into a vect
 │   ├── middleware/     # Auth, error handler, rate limiter
 │   ├── models/         # Mongoose schemas
 │   ├── routes/         # Express routers
-│   ├── services/       # Email, classification, upload logic
+│   ├── services/       # Email, HuggingFace client, classification, upload logic
 │   ├── __tests__/      # Jest integration tests
 │   ├── seed.js         # DB seed script
 │   └── server.js       # Entry point
@@ -142,6 +149,9 @@ Starts the API and a local MongoDB container together. API available at `http://
 | `MONGO_URI_DOCKER` | MongoDB URI for Docker Compose |
 | `JWT_SECRET` | Secret key for signing JWTs |
 | `JWT_EXPIRE` | JWT expiry (e.g. `7d`) |
+| `SEED_ADMIN_EMAIL` | Admin email for `npm run seed` — required, the seed script refuses to run without it |
+| `SEED_ADMIN_PASSWORD` | Admin password for `npm run seed`, min 8 chars — required |
+| `RATE_LIMIT_MAX` | Max auth requests per 15-min window per IP (default: 10) |
 | `HF_TOKEN` | HuggingFace API token |
 | `EMAIL_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
 | `EMAIL_PORT` | SMTP port (e.g. `587`) |
@@ -165,11 +175,16 @@ Starts the API and a local MongoDB container together. API available at `http://
 | `POST /api/v1/auth/logout` | Blacklist current JWT |
 | `GET /api/v1/jobs` | List jobs (public, filterable) |
 | `POST /api/v1/jobs` | Create job (approved recruiter only) |
-| `GET /api/v1/jobs/recommended` | AI job recommendations |
+| `GET /api/v1/jobs/recommended` | AI job recommendations (job seeker) |
 | `POST /api/v1/jobs/:id/apply` | Apply to a job |
+| `POST /api/v1/jobs/:id/save` | Save / unsave a job (job seeker) |
+| `GET /api/v1/jobs/saved` | List saved jobs (job seeker) |
+| `POST /api/v1/jobs/:id/cover-letter` | AI-draft a cover letter for a job (job seeker) |
+| `GET /api/v1/jobs/:jobId/applicants` | List applicants for a job (owning recruiter) |
 | `GET /api/v1/profile` | Get own profile |
 | `PATCH /api/v1/profile` | Update profile / upload picture |
-| `POST /api/v1/profile/extract-skills` | AI skill extraction from bio |
+| `PATCH /api/v1/profile/change-password` | Change password while logged in |
+| `POST /api/v1/profile/extract-skills` | Keyword skill extraction from bio (job seeker) |
 | `GET /api/v1/users` | List users (admin only) |
 | `PATCH /api/v1/users/:id/status` | Approve / reject recruiter |
 | `GET /api/v1/applications/my` | My applications (job seeker) |
@@ -186,7 +201,7 @@ Full interactive docs: `/api-docs`
 npm test
 ```
 
-Uses an in-memory MongoDB instance — no external DB required. Covers auth, jobs, applications, profile, rate limiting, and OTP flows.
+Uses an in-memory MongoDB instance — no external DB required. Covers auth (register / login / logout, full OTP reset flow, change-password), jobs (CRUD, recommendations, cover letters, saved jobs), applications and status updates, profile and skill extraction, admin stats, rate limiting, and role-based access negatives. Run with `--coverage` for a report (CI does this).
 
 ---
 
