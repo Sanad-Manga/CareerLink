@@ -1,5 +1,7 @@
-  const Application = require("../models/Application");
+const Application = require("../models/Application");
 const JobPost = require("../models/JobPost");
+const { cosineSimilarity } = require("../services/similarity");
+const { getUserEmbedding } = require("../services/embedding");
 
 const getAllApplications = async (req, res, next) => {
   try {
@@ -112,11 +114,15 @@ const updateApplicationStatus = async (req, res, next) => {
   }
 };
 
+// ─── GET /api/v1/applications/job/:jobId ─────────────────────────────────────
+// Private (owning recruiter only). Returns a job's applicants ranked by
+// cosine similarity between the job's cached embedding and each applicant's
+// (lazily cached) embedding — mirrors the /jobs/recommended pattern.
 const getJobApplicants = async (req, res, next) => {
   try {
     const { jobId } = req.params;
 
-    const job = await JobPost.findById(jobId);
+    const job = await JobPost.findById(jobId).select("+embedding");
     if (!job) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
@@ -126,10 +132,45 @@ const getJobApplicants = async (req, res, next) => {
     }
 
     const applicants = await Application.find({ job: jobId })
-      .populate("user", "name email bio skills profilePicture")
+      .populate({ path: "user", select: "name email bio skills profilePicture embedding", options: { select: "+embedding" } })
       .sort({ appliedAt: -1 });
 
-    return res.status(200).json({ success: true, applications: applicants });
+    // No job embedding cached (e.g. HF failed at creation time) → can't score anyone
+    if (!job.embedding || !job.embedding.length) {
+      const unscored = applicants.map(a => ({ ...a.toObject(), score: null, scored: false }));
+      return res.status(200).json({ success: true, applications: unscored });
+    }
+
+    const ranked = await Promise.all(
+      applicants.map(async (application) => {
+        const applicant = application.user;
+        const obj = application.toObject();
+
+        if (!applicant) return { ...obj, score: null, scored: false };
+
+        let embedding = applicant.embedding;
+
+        // Lazy backfill: applicant has no cached embedding yet (pre-dates #8,
+        // or their skills/bio were set before the embedding hook existed).
+        if (!embedding || !embedding.length) {
+          embedding = await getUserEmbedding(applicant.skills, applicant.bio);
+          if (embedding) {
+            await applicant.constructor.findByIdAndUpdate(applicant._id, { embedding });
+          }
+        }
+
+        if (!embedding || !embedding.length) {
+          return { ...obj, score: null, scored: false };
+        }
+
+        const score = cosineSimilarity(job.embedding, embedding);
+        return { ...obj, score, scored: true };
+      })
+    );
+
+    ranked.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+
+    return res.status(200).json({ success: true, applications: ranked });
   } catch (err) {
     next(err);
   }
