@@ -148,3 +148,14 @@ Turn on a real CSP, move CORS origins to `ALLOWED_ORIGINS` env var. Token storag
 - Triage new bugs, keep `tasks/*.md` and the board in sync.
 - Review cadence: each person opens PRs against `main`; you review + merge; nobody merges their own.
 - Keep the 3 workstreams from colliding — Ziad's Z1/Z2 (shared store) and Abdelrahman's A1 (schema change) both touch models/infra; sequence them.
+
+---
+
+## Continuation — CareerLink (post-v1.0)
+
+The audit issues above (#76–#105) are **done and merged**; `v1.0` is tagged.
+Ongoing work happens in the new repo: **https://github.com/Sanad-Manga/CareerLink.git**
+
+Your continuation tasks: [`tasks/continuation/AHMED.md`](continuation/AHMED.md)
+How the detach works: [`tasks/continuation/DETACH.md`](continuation/DETACH.md)
+Roadmap: [`docs/ROADMAP.md`](../docs/ROADMAP.md)

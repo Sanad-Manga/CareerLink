@@ -166,3 +166,14 @@ Re-classify when `title` OR `description` changes. Decide whether `totalSlots` s
 **Acceptance criteria**
 - Title-only edit updates category.
 - `totalSlots` either enforced (with a test) or removed from schema + swagger + `JobForm`.
+
+---
+
+## Continuation — CareerLink (post-v1.0)
+
+The audit issues above (#76–#105) are **done and merged**; `v1.0` is tagged.
+Ongoing work happens in the new repo: **https://github.com/Sanad-Manga/CareerLink.git**
+
+Your continuation tasks: [`tasks/continuation/ABDELRAHMAN.md`](continuation/ABDELRAHMAN.md)
+How the detach works: [`tasks/continuation/DETACH.md`](continuation/DETACH.md)
+Roadmap: [`docs/ROADMAP.md`](../docs/ROADMAP.md)

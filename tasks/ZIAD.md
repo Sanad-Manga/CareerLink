@@ -168,3 +168,14 @@ Reject actions where the target `role === 'admin'` or the target is `req.user._i
 - Admin cannot delete or demote another admin or self (403).
 - Deleting a recruiter removes/reassigns their jobs.
 - Tests added.
+
+---
+
+## Continuation — CareerLink (post-v1.0)
+
+The audit issues above (#76–#105) are **done and merged**; `v1.0` is tagged.
+Ongoing work happens in the new repo: **https://github.com/Sanad-Manga/CareerLink.git**
+
+Your continuation tasks: [`tasks/continuation/ZIAD.md`](continuation/ZIAD.md)
+How the detach works: [`tasks/continuation/DETACH.md`](continuation/DETACH.md)
+Roadmap: [`docs/ROADMAP.md`](../docs/ROADMAP.md)
