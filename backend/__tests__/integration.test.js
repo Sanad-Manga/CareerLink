@@ -42,11 +42,16 @@ process.env.JWT_EXPIRE = '7d';
 process.env.NODE_ENV = 'test';
 
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const request = require('supertest');
 const app = require('../app');
 const User = require('../models/User');
 const JobPost = require('../models/JobPost');
+const Application = require('../models/Application');
+const BlacklistedToken = require('../models/BlacklistedToken');
+const RateLimitHit = require('../models/RateLimitHit');
+const blacklist = require('../middleware/tokenBlacklist');
 const { USERS, JOB } = require('./fixtures');
 const { authLimiterStore } = require('../middleware/rateLimiter');
 const hfService = require('../services/hfService');
@@ -181,6 +186,17 @@ describe('Auth — Login', () => {
     expect(res.status).toBe(401);
   });
 
+  it('rejects a NoSQL operator object in the email field', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: { $ne: null }, password: 'anything' });
+
+    expect([400, 401]).toContain(res.status);
+    expect(res.body.success).not.toBe(true);
+    expect(res.body.token).toBeUndefined();
+    expect(res.body.user).toBeUndefined();
+  });
+
   it('logs in with the original mixed-case, dotted email used at register', async () => {
     const original = 'Foo.Bar@Gmail.com';
     const password = USERS.jobSeeker.password;
@@ -198,6 +214,49 @@ describe('Auth — Login', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.token).toBeDefined();
+  });
+});
+
+// ─── Logout / JWT blacklist ──────────────────────────────────────────────────
+
+describe('Auth — Logout (Mongo-backed JWT blacklist)', () => {
+  it('rejects a logged-out token on a protected route with 401', async () => {
+    const { token } = await registerAndLogin('jobSeeker');
+
+    const logoutRes = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Authorization', `Bearer ${token}`);
+    expect(logoutRes.status).toBe(200);
+
+    const reuseRes = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Authorization', `Bearer ${token}`);
+    expect(reuseRes.status).toBe(401);
+    expect(reuseRes.body.message).toMatch(/invalidated/i);
+  });
+
+  it('persists a BlacklistedToken row whose expiresAt matches the token exp claim', async () => {
+    const { token } = await registerAndLogin('jobSeeker');
+    const decoded = jwt.decode(token);
+
+    await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Authorization', `Bearer ${token}`);
+
+    const row = await BlacklistedToken.findOne({ jti: decoded.jti });
+    expect(row).not.toBeNull();
+    expect(row.expiresAt.getTime()).toBe(decoded.exp * 1000);
+  });
+
+  it('does not throw when the same jti is blacklisted twice concurrently', async () => {
+    const jti = 'concurrent-jti-test';
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+
+    await expect(
+      Promise.all([blacklist.add(jti, exp), blacklist.add(jti, exp)])
+    ).resolves.not.toThrow();
+
+    expect(await blacklist.has(jti)).toBe(true);
   });
 });
 
@@ -627,6 +686,110 @@ describe('Admin — Stats (GET /admin/stats)', () => {
   });
 });
 
+// ─── Admin — user self-protection + cascade on delete ───────────────────────
+
+describe('Admin — User management guards (DELETE /users/:id, PATCH /users/:id/status)', () => {
+  it('cannot delete another admin (403)', async () => {
+    const { token } = await createAdminAndLogin('a');
+    const { userId: otherAdminId } = await createAdminAndLogin('b');
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${otherAdminId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(await User.findById(otherAdminId)).not.toBeNull();
+  });
+
+  it('cannot delete their own account (403)', async () => {
+    const { token, userId } = await createAdminAndLogin('a');
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${userId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(await User.findById(userId)).not.toBeNull();
+  });
+
+  it('cannot change another admin\'s status (403)', async () => {
+    const { token } = await createAdminAndLogin('a');
+    const { userId: otherAdminId } = await createAdminAndLogin('b');
+
+    const res = await request(app)
+      .patch(`/api/v1/users/${otherAdminId}/status`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'rejected' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('cannot change their own status (403)', async () => {
+    const { token, userId } = await createAdminAndLogin('a');
+
+    const res = await request(app)
+      .patch(`/api/v1/users/${userId}/status`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'pending' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('deleting a recruiter cascade-removes their job posts', async () => {
+    const { token: adminToken } = await createAdminAndLogin('a');
+    const { token: recToken, userId: recId } = await registerAndLogin('recruiter', 'casc');
+    await createTestJob(recToken, { title: 'Job One' });
+    await createTestJob(recToken, { title: 'Job Two' });
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${recId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(await JobPost.countDocuments({ createdBy: recId })).toBe(0);
+  });
+
+  it('deleting a recruiter also removes applications to their jobs', async () => {
+    const { token: adminToken } = await createAdminAndLogin('a');
+    const { token: recToken, userId: recId } = await registerAndLogin('recruiter', 'casc');
+    const { token: seekerToken } = await registerAndLogin('jobSeeker', 'casc');
+
+    const jobRes = await createTestJob(recToken);
+    await request(app)
+      .post(`/api/v1/applications/${jobRes.body.job._id}/apply`)
+      .set('Authorization', `Bearer ${seekerToken}`)
+      .send({ coverLetter: 'x' });
+    expect(await Application.countDocuments({ job: jobRes.body.job._id })).toBe(1);
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${recId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(await Application.countDocuments({ job: jobRes.body.job._id })).toBe(0);
+  });
+
+  it('deleting a job seeker cascade-removes their applications', async () => {
+    const { token: adminToken } = await createAdminAndLogin('a');
+    const { token: recToken } = await registerAndLogin('recruiter', 'casc');
+    const { token: seekerToken, userId: seekerId } = await registerAndLogin('jobSeeker', 'casc');
+
+    const jobRes = await createTestJob(recToken);
+    await request(app)
+      .post(`/api/v1/applications/${jobRes.body.job._id}/apply`)
+      .set('Authorization', `Bearer ${seekerToken}`)
+      .send({ coverLetter: 'x' });
+    expect(await Application.countDocuments({ user: seekerId })).toBe(1);
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${seekerId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(await Application.countDocuments({ user: seekerId })).toBe(0);
+  });
+});
+
 // ─── Profile — Extract Skills (keyword matching, not an NER model) ───────────
 
 describe('Profile — Extract Skills (keyword matcher)', () => {
@@ -915,5 +1078,34 @@ describe('Auth — Rate Limiting', () => {
     expect(res.status).toBe(429);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toMatch(/too many attempts/i);
+  });
+
+  it('persists the hit counter in Mongo (survives a process restart)', async () => {
+    for (let i = 0; i < 3; i++) {
+      await loginUser(`nobody${i}@test.com`, 'whatever');
+    }
+
+    const rows = await RateLimitHit.find({});
+    expect(rows).toHaveLength(1);
+    expect(rows[0].totalHits).toBe(3);
+    expect(rows[0].expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+});
+
+// ─── AI-heavy routes — per-user rate limiting ────────────────────────────────
+
+describe('Jobs — AI route rate limiting', () => {
+  it('returns 429 after 20 AI requests from the same user in the window', async () => {
+    const { token } = await registerAndLogin('recruiter');
+
+    for (let i = 0; i < 20; i++) {
+      const ok = await createTestJob(token);
+      expect(ok.status).toBe(201);
+    }
+
+    const res = await createTestJob(token);
+    expect(res.status).toBe(429);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/too many ai requests/i);
   });
 });

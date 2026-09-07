@@ -24,17 +24,24 @@ const getJobEmbedding = async (title, requirements) => {
 };
 
 
+// Escape regex metacharacters so user input can't inject a pattern or trigger
+// catastrophic backtracking (ReDoS) through the $regex filters below.
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getJobs = async (req, res, next) => {
   try {
     const { keyword, location, type, status, page = 1, limit = 10 } = req.query;
 
     const filter = {};
-    if (keyword) filter.$or = [
-      { title:       { $regex: keyword, $options: 'i' } },
-      { company:     { $regex: keyword, $options: 'i' } },
-      { description: { $regex: keyword, $options: 'i' } },
-    ];
-    if (location) filter.location = { $regex: location, $options: 'i' };
+    if (keyword) {
+      const safe = escapeRegex(keyword);
+      filter.$or = [
+        { title:       { $regex: safe, $options: 'i' } },
+        { company:     { $regex: safe, $options: 'i' } },
+        { description: { $regex: safe, $options: 'i' } },
+      ];
+    }
+    if (location) filter.location = { $regex: escapeRegex(location), $options: 'i' };
     if (type)     filter.type     = type;
     if (status)   filter.status   = status;
 

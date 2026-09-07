@@ -29,8 +29,8 @@ A RESTful backend API connecting German International University students with i
 - **Recommendations** — AI-powered job recommendations based on user skills (sentence-transformers + cosine similarity).
 - **Cover letters** — AI-drafted cover letter per job for job seekers (HuggingFace chat completion).
 - **Admin** — Platform stats, user management, recruiter approval/rejection.
-- **Rate limiting** — Auth routes limited to 10 requests per 15 minutes per IP (override with `RATE_LIMIT_MAX`).
-- **Security** — Helmet and CORS. Registration inputs are validated and escaped (`validator` + `xss`); broader request sanitization is not yet wired.
+- **Rate limiting** — Auth routes limited to 10 requests per 15 minutes per IP (override with `RATE_LIMIT_MAX`); the AI-backed job routes limited to 20 requests per hour per user. Both limiters are Mongo-backed, so they hold across restarts and instances.
+- **Security** — Helmet and CORS. `express-mongo-sanitize` strips Mongo operator keys (`$`, `.`) from every request body, params, and query. Registration inputs are additionally validated and escaped (`validator` + `xss`); other endpoints are not HTML-escaped.
 - **Swagger docs** — Interactive API docs at `/api-docs`.
 - **Tests** — Jest integration test suite with MongoDB in-memory server.
 

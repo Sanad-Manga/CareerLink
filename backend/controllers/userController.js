@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const JobPost = require('../models/JobPost');
+const Application = require('../models/Application');
 
 // GET /api/v1/users
 exports.getUsers = async (req, res, next) => {
@@ -63,11 +65,7 @@ exports.updateUserStatus = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    ).select('_id name email role status');
+    const user = await User.findById(req.params.id).select('_id name email role status');
 
     if (!user) {
       return res.status(404).json({
@@ -75,6 +73,17 @@ exports.updateUserStatus = async (req, res, next) => {
         message: 'User not found',
       });
     }
+
+    // Admins can't be demoted, and an admin can't change their own status.
+    if (user.role === 'admin' || req.params.id === req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify this account',
+      });
+    }
+
+    user.status = status;
+    await user.save();
 
     res.status(200).json({
       success: true,
@@ -105,7 +114,7 @@ exports.getPublicProfile = async (req, res, next) => {
 // DELETE /api/v1/users/:id
 exports.deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -113,6 +122,22 @@ exports.deleteUser = async (req, res, next) => {
         message: 'User not found',
       });
     }
+
+    // Admins can't be deleted, and an admin can't delete their own account.
+    if (user.role === 'admin' || req.params.id === req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete this account',
+      });
+    }
+
+    // Cascade: don't orphan documents tied to this user.
+    const jobIds = await JobPost.find({ createdBy: user._id }).distinct('_id');
+
+    await user.deleteOne();
+    await JobPost.deleteMany({ createdBy: user._id });
+    await Application.deleteMany({ job: { $in: jobIds } }); // applications TO a deleted recruiter's jobs
+    await Application.deleteMany({ user: user._id });       // applications BY a deleted job seeker
 
     res.status(200).json({
       success: true,

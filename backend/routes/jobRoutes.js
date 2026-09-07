@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 
 const { protect, authorize } = require('../middleware/auth');
+const { aiLimiter } = require('../middleware/rateLimiter');
 const {
   getJobs,
   getMyJobs,
@@ -96,7 +97,7 @@ router.get('/my-jobs', protect, authorize('recruiter'), getMyJobs);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/recommended', protect, authorize('jobSeeker'), getRecommendedJobs);
+router.get('/recommended', protect, authorize('jobSeeker'), aiLimiter, getRecommendedJobs);
 
 /**
  * @swagger
@@ -255,7 +256,7 @@ router.get('/saved', protect, authorize('jobSeeker'), getSavedJobs);
  */
 router.route('/')
   .get(getJobs)
-  .post(protect, authorize('recruiter'), createJob);
+  .post(protect, authorize('recruiter'), aiLimiter, createJob);
 
 /**
  * @swagger
@@ -396,7 +397,7 @@ router.get('/:id', getJobById);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/:id', protect, authorize('recruiter'), updateJob);
+router.patch('/:id', protect, authorize('recruiter'), aiLimiter, updateJob);
 
 /**
  * @swagger
@@ -475,6 +476,6 @@ router.delete('/:id', protect, authorize('recruiter', 'admin'), deleteJob);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/:id/save', protect, authorize('jobSeeker'), saveJob);
-router.post('/:id/cover-letter', protect, authorize('jobSeeker'), generateCoverLetter);
+router.post('/:id/cover-letter', protect, authorize('jobSeeker'), aiLimiter, generateCoverLetter);
 
 module.exports = router;

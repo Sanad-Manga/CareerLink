@@ -133,6 +133,10 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    if (typeof email !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid email" });
+    }
+
     const normalizedEmail = validator.normalizeEmail(email);
     const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
@@ -178,7 +182,7 @@ exports.logout = async (req, res, next) => {
     const token = req.headers.authorization.split(" ")[1];
     const decoded = jwt.decode(token);
     if (decoded?.jti) {
-      blacklist.add(decoded.jti);
+      await blacklist.add(decoded.jti, decoded.exp);
     }
     res.status(200).json({
       success: true,
@@ -199,6 +203,10 @@ exports.forgotPassword = async (req, res, next) => {
         success: false,
         message: "Please provide an email",
       });
+    }
+
+    if (typeof email !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid email" });
     }
 
     const normalizedEmail = validator.normalizeEmail(email);
@@ -248,6 +256,10 @@ exports.verifyOtp = async (req, res, next) => {
         success: false,
         message: "Please provide email and OTP",
       });
+    }
+
+    if (typeof email !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid email" });
     }
 
     const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
