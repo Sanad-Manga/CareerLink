@@ -73,7 +73,7 @@ A job seeker with a bio can generate a first-draft cover letter for a specific j
 | File storage | Cloudinary |
 | Docs | Swagger / OpenAPI 3.0 |
 | Testing | Jest + Supertest + mongodb-memory-server |
-| Deployment | Railway |
+| Deployment | Render |
 | Container | Docker + Docker Compose |
 
 ---
@@ -95,7 +95,7 @@ A job seeker with a bio can generate a first-draft cover letter for a specific j
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
-└── railway.toml
+└── render.yaml
 ```
 
 ---
@@ -223,7 +223,7 @@ Running with `NODE_ENV=production` is refused unless you also pass `--force`.
 | Layer | Platform | URL |
 |-------|----------|-----|
 | Frontend | Vercel | **https://giu-nexus-beta.vercel.app** |
-| Backend | Railway | **https://giu-nexus-api.up.railway.app** |
+| Backend | Render | **https://careerlink-api.onrender.com** _(placeholder — verify against the actual URL Render assigns)_ |
 | Database | MongoDB Atlas | — |
 
-Full interactive API docs: https://giu-nexus-api.up.railway.app/api-docs
+Full interactive API docs: https://careerlink-api.onrender.com/api-docs _(placeholder — verify against the actual Render URL)_
