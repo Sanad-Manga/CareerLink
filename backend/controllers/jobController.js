@@ -88,7 +88,7 @@ const createJob = async (req, res, next) => {
       });
     }
 
-    const { title, company, description, requirements, location, type } = req.body;
+    const { title, company, description, requirements, location, type, salary, totalSlots } = req.body;
     if (!title || !company || !description || !requirements || !location || !type) {
       return res.status(400).json({
         success: false,
@@ -99,7 +99,19 @@ const createJob = async (req, res, next) => {
     const category = await classifyJobCategory(title, description);
     const embedding = await getJobEmbedding(title, requirements);
 
-    const job = await JobPost.create({ ...req.body, category, embedding, createdBy: req.user._id });
+    const job = await JobPost.create({
+      title,
+      company,
+      description,
+      requirements,
+      location,
+      type,
+      salary,
+      totalSlots,
+      category,
+      embedding,
+      createdBy: req.user._id,
+    });
     res.status(201).json({ success: true, job });
   } catch (err) { next(err); }
 };
@@ -124,13 +136,20 @@ const updateJob = async (req, res, next) => {
     if (job.createdBy.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: 'Not authorised to edit this job' });
 
-    if (req.body.description || req.body.title) {
-      req.body.category = await classifyJobCategory(req.body.title || job.title, req.body.description || job.description);
+    const ALLOWED_FIELDS = ['title', 'company', 'description', 'requirements', 'location', 'type', 'salary', 'totalSlots'];
+    const updates = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
     }
-    if (req.body.title || req.body.requirements) {
-      req.body.embedding = await getJobEmbedding(req.body.title || job.title, req.body.requirements || job.requirements);
+
+    if (updates.description || updates.title) {
+      updates.category = await classifyJobCategory(updates.title || job.title, updates.description || job.description);
     }
-    const updated = await JobPost.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (updates.title || updates.requirements) {
+      updates.embedding = await getJobEmbedding(updates.title || job.title, updates.requirements || job.requirements);
+    }
+
+    const updated = await JobPost.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     res.status(200).json({ success: true, job: updated });
   } catch (err) { next(err); }
 };
