@@ -3,6 +3,7 @@ const Application = require('../models/Application');
 const User = require('../models/User');
 const { classifyJobCategory } = require('../services/classificationService');
 const hf = require('../services/hfService');
+const { cosineSimilarity } = require('../services/similarity');
 // ─── GET /api/v1/jobs ─────────────────────────────────────────────────────────
 const getJobEmbedding = async (title, requirements) => {
   try {
@@ -206,13 +207,6 @@ const getRecommendedJobs = async (req, res, next) => {
         inputs: studentText,
       });
       const studentVec = studentResult;
-
-      const cosineSimilarity = (a, b) => {
-        const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
-        const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-        const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-        return dot / (magA * magB);
-      };
 
       // Jobs missing a cached embedding (created before this feature, or a failed embed) get one now
       const missing = openJobs.filter(job => !job.embedding || !job.embedding.length);
