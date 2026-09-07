@@ -20,7 +20,7 @@ A RESTful backend API connecting German International University students with i
 
 ## Features
 
-- **Auth** — Register, login, logout with JWT. Forgot password via OTP email (Nodemailer). JWT blacklisting on logout (in-memory — cleared on restart).
+- **Auth** — Register, login, logout with JWT. Forgot password via OTP email (Nodemailer). Logout blacklists the token's `jti` in a Mongo collection with a TTL index, so it survives restarts and is shared across instances.
 - **Role-based access** — Job Seeker, Recruiter, Admin with route-level authorization.
 - **Recruiter approval** — Recruiters start as `pending` and must be approved by an admin before posting jobs.
 - **Jobs** — Create, filter, update, delete. AI auto-assigns category (HuggingFace zero-shot classification). Save/unsave jobs.
