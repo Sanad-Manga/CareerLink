@@ -264,6 +264,48 @@
   color: #6B7280;
 }
 
+/* ── WHY FIT ── */
+.whyFitBtn {
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6366F1;
+  background: transparent;
+  border: 1px solid #E0E7FF;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.whyFitBtn:hover {
+  background: #EEF2FF;
+}
+
+.whyFitBox {
+  margin-top: 8px;
+  max-width: 220px;
+  text-align: right;
+}
+
+.whyFitLoading {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.whyFitError {
+  font-size: 11px;
+  color: #DC2626;
+}
+
+.whyFitText {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4B5563;
+  margin: 0;
+}
+
 /* ── Dark mode ── */
 [data-theme="dark"] .page { background: #0F172A; color: #F1F5F9; }
 [data-theme="dark"] .pageHeader { background: #1E293B; border-color: #334155; }
@@ -290,3 +332,7 @@
 [data-theme="dark"] .emptySub { color: #94A3B8; }
 [data-theme="dark"] .errorText { color: #F87171; }
 [data-theme="dark"] .emptyText { color: #94A3B8; }
+[data-theme="dark"] .whyFitBtn { color: #A5B4FC; border-color: #3730A3; }
+[data-theme="dark"] .whyFitBtn:hover { background: #312E81; }
+[data-theme="dark"] .whyFitLoading { color: #64748B; }
+[data-theme="dark"] .whyFitText { color: #CBD5E1; }

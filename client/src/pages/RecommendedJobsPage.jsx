@@ -34,6 +34,44 @@ const NoSkillsState = () => (
   </div>
 );
 
+const WhyFitBlock = ({ jobId }) => {
+  const [explanation, setExplanation] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [shown, setShown] = useState(false);
+
+  const fetchWhyFit = async () => {
+    setShown(true);
+    if (explanation) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.get(`/jobs/${jobId}/why-fit`);
+      setExplanation(res.data.explanation);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to generate explanation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!shown) {
+    return (
+      <button className={styles.whyFitBtn} onClick={fetchWhyFit}>
+        Why this fits →
+      </button>
+    );
+  }
+
+  return (
+    <div className={styles.whyFitBox}>
+      {loading && <span className={styles.whyFitLoading}>Generating explanation…</span>}
+      {!loading && error && <span className={styles.whyFitError}>{error}</span>}
+      {!loading && explanation && <p className={styles.whyFitText}>{explanation}</p>}
+    </div>
+  );
+};
+
 const RecommendedJobsPage = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +164,7 @@ const RecommendedJobsPage = () => {
                         />
                       </div>
                       <span className={styles.scoreLabel}>match score</span>
+                      <WhyFitBlock jobId={job._id} />
                     </div>
                   )}
                 </div>
