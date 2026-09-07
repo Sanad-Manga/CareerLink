@@ -1,0 +1,27 @@
+# Consolidates the multiple name/email identities each contributor used across
+# the GIU Nexus history into one canonical entry per person, so `git shortlog`,
+# `git log`, and GitHub's contributor view show one line per human.
+#
+# Format:
+#   Canonical Name <canonical-email>                     -> normalises the name for that email
+#   Canonical Name <canonical-email> <other-email>       -> also folds in a second email
+#
+# Every email below already appears verbatim in the public commit history — this
+# file only groups them, it does not expose anything new.
+
+Ahmed Sanad <ahmed.sanad@student.giu-uni.de>
+Abdelrahman ElGabarty <abdelrahman.yousry@student.giu-uni.de>
+Eyad Nader <Eyadnader2007@gmail.com>
+Mohamed Walid <mohamed.walidibrahim@student.giu-uni.de>
+Baraa Tantawy <baraaibrahim171@gmail.com>
+Mostafa Ayman <mostafa.shalapy@student.giu-uni.de>
+
+Ziad Mohsen <125408057+ziadmosen06@users.noreply.github.com>
+Ziad Mohsen <125408057+ziadmosen06@users.noreply.github.com> <ziadmohsen782006@@gmail.com>
+Ziad Mohsen <125408057+ziadmosen06@users.noreply.github.com> <125408057+ziadmohsen06@users.noreply.github.com>
+
+Mohamed Nazmy <mohamednazmy23456789@gmail.com>
+Mohamed Nazmy <mohamednazmy23456789@gmail.com> <71565572+mohamednazmy23@users.noreply.github.com>
+
+Ali Issa <ali.issa@student.giu-uni.de>
+Ali Issa <ali.issa@student.giu-uni.de> <alibashar.issa2006@gmail.com>

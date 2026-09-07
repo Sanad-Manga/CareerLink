@@ -1,0 +1,24 @@
+GIU Nexus was built in 2025–2026 as a university project at the German
+International University (GIU) by nine students:
+
+  Ahmed Sanad             @Sanad-Manga
+  Abdelrahman ElGabarty   @AbdelrahmanElGabarty
+  Ziad Mohsen             @ziadmosen06
+  Mohamed Walid           @MohamedWalid16006402
+  Mohamed Nazmy           @mohamednazmy23
+  Ali Issa                @Ali-Issa-8792
+  Baraa Tantawy           @baraatantawy16008335
+  Eyad Nader              @EyadNader101
+  Mostafa Ayman           @Mostafa11Ayman
+
+The v1.0 tag on the original repository (Sanad-Manga/GIU-Nexus) freezes that
+university version. Development continues from that point under a new name,
+maintained by:
+
+  Ahmed Sanad
+  Ziad Mohsen
+  Abdelrahman ElGabarty
+
+The full commit history — every original contributor's work — is preserved in
+the continuation repository. See .mailmap for identity consolidation and
+docs/DETACH-PLAN.md for how the migration was done.
