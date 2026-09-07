@@ -5,17 +5,22 @@ jest.mock('../services/classificationService', () => ({
 
 // hfService is the thin @huggingface/inference wrapper. Only the methods the
 // controllers actually call are mocked:
-//   - featureExtraction  → job recommendations (one embedding vector per input)
+//   - featureExtraction  → job/skill embeddings. The controller calls it with a
+//     single string (`inputs: text`) per job and per user; return one flat
+//     numeric vector, deterministic on the input so cosine similarity is stable.
+//     (Array input is still handled for safety.)
 //   - zeroShotClassification → real classification path (see classificationService suite)
 //   - chatCompletion     → cover-letter generation
 jest.mock('../services/hfService', () => {
   const EMBED_DIM = 8;
+  const toVec = (s) => {
+    let h = 0;
+    for (let i = 0; i < String(s).length; i++) h = (h * 31 + String(s).charCodeAt(i)) >>> 0;
+    return Array.from({ length: EMBED_DIM }, (_, k) => Math.sin(h * (k + 1) * 1e-4));
+  };
   return {
     featureExtraction: jest.fn(async ({ inputs }) =>
-      // one deterministic vector per input, length always matches the input count
-      inputs.map((_, i) =>
-        Array.from({ length: EMBED_DIM }, (_, k) => Math.sin((i + 1) * (k + 1)))
-      )
+      Array.isArray(inputs) ? inputs.map(toVec) : toVec(inputs)
     ),
     zeroShotClassification: jest
       .fn()
@@ -407,7 +412,7 @@ describe('Jobs — Recommendations (GET /jobs/recommended)', () => {
     await createTestJob(rToken, { title: 'Frontend React Developer', requirements: ['React', 'CSS'] });
   });
 
-  it('returns ranked jobs with normalised scores for a seeker with skills (200)', async () => {
+  it('returns jobs ranked by cosine similarity for a seeker with skills (200)', async () => {
     await User.findByIdAndUpdate(seekerId, { skills: ['Node.js', 'Express', 'MongoDB'] });
 
     const res = await request(app)
@@ -419,19 +424,23 @@ describe('Jobs — Recommendations (GET /jobs/recommended)', () => {
     expect(Array.isArray(res.body.jobs)).toBe(true);
     expect(res.body.jobs).toHaveLength(2);
     expect(hfService.featureExtraction).toHaveBeenCalled();
-    // scores are normalised so the top match is 1.0 and the list is sorted desc
-    expect(res.body.jobs[0].score).toBeCloseTo(1, 5);
+    // every job scored, raw cosine similarity (no forced 1.0 normalisation), sorted desc
+    for (const job of res.body.jobs) {
+      expect(job.scored).toBe(true);
+      expect(typeof job.score).toBe('number');
+    }
     expect(res.body.jobs[0].score).toBeGreaterThanOrEqual(res.body.jobs[1].score);
   });
 
-  it('returns jobs unranked (no HF call) when the seeker has no skills (200)', async () => {
+  it('returns jobs with score:null when the seeker has no skills (200)', async () => {
     const res = await request(app)
       .get('/api/v1/jobs/recommended')
       .set('Authorization', `Bearer ${seekerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.jobs).toHaveLength(2);
-    expect(res.body.jobs[0].score).toBeUndefined();
+    expect(res.body.jobs[0].score).toBeNull();
+    expect(res.body.jobs[0].scored).toBe(false);
   });
 
   it('returns 401 without a token', async () => {
