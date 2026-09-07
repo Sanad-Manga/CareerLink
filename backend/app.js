@@ -16,11 +16,15 @@ const errorHandler = require("./middleware/ErrorHandler");
 
 const app = express();
 
-const ALLOWED_ORIGINS = [
+// Comma-separated list in ALLOWED_ORIGINS; falls back to the local dev origins
+// when the env var is unset.
+const DEFAULT_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://giu-nexus-beta.vercel.app',
 ];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : DEFAULT_ORIGINS;
 
 app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
