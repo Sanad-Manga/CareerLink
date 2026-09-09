@@ -53,6 +53,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Railway trial expired; deploy fails on every push. Stop-gap so main's CI
+    # stays green until the hosting migration (#4) lands.
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
