@@ -27,7 +27,17 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : DEFAULT_ORIGINS;
 
 app.set('trust proxy', 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // swagger-ui injects its styles inline at runtime and renders icons as
+      // data: URIs; its scripts are all served same-origin from /api-docs.
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+    },
+  },
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
