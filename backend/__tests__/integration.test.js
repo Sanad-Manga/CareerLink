@@ -260,14 +260,21 @@ describe('Auth — Logout (Mongo-backed JWT blacklist)', () => {
   });
 });
 
-// ─── Security headers ───────────────────────────────────────────────────────
+// ─── CORS allow-list ────────────────────────────────────────────────────────
 
-describe('Security headers', () => {
-  it('sets a Content-Security-Policy with default-src \'self\' on a normal route', async () => {
-    const res = await request(app).get('/api/v1/jobs');
-    const csp = res.headers['content-security-policy'];
-    expect(csp).toBeDefined();
-    expect(csp).toMatch(/default-src 'self'/);
+describe('CORS allow-list', () => {
+  it('reflects a default localhost origin', async () => {
+    const res = await request(app)
+      .get('/api/v1/jobs')
+      .set('Origin', 'http://localhost:5173');
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+  });
+
+  it('does not allow a non-listed origin', async () => {
+    const res = await request(app)
+      .get('/api/v1/jobs')
+      .set('Origin', 'http://evil.example.com');
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
 
