@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  embedding: {
+    type: [Number],
+    select: false,
+  },
   role: {
     type: String,
     enum: ['jobSeeker', 'recruiter', 'admin'],

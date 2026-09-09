@@ -515,6 +515,91 @@ describe('Jobs — Recommendations (GET /jobs/recommended)', () => {
   });
 });
 
+// ─── Applicant ranking ──────────────────────────────────────────────────────
+
+describe('Jobs — Applicant ranking (GET /jobs/:jobId/applicants)', () => {
+  let recruiterToken, otherRecruiterToken, jobId;
+
+  beforeEach(async () => {
+    const { token: rToken } = await registerAndLogin('recruiter', 'rank');
+    const { token: orToken } = await registerAndLogin('recruiter', 'rank2');
+    recruiterToken = rToken;
+    otherRecruiterToken = orToken;
+
+    const jobRes = await createTestJob(rToken);
+    jobId = jobRes.body.job._id;
+  });
+
+  it('ranks applicants by match score, best first (200)', async () => {
+    const { token: seeker1Token, userId: seeker1Id } = await registerAndLogin('jobSeeker', 'rank1');
+    const { token: seeker2Token, userId: seeker2Id } = await registerAndLogin('jobSeeker', 'rank2');
+
+    await User.findByIdAndUpdate(seeker1Id, { skills: ['Node.js', 'Express', 'MongoDB'] });
+    await User.findByIdAndUpdate(seeker2Id, { skills: ['Photoshop', 'Illustrator'] });
+
+    await request(app)
+      .post(`/api/v1/applications/${jobId}/apply`)
+      .set('Authorization', `Bearer ${seeker1Token}`)
+      .send({ coverLetter: 'Strong backend fit.' });
+    await request(app)
+      .post(`/api/v1/applications/${jobId}/apply`)
+      .set('Authorization', `Bearer ${seeker2Token}`)
+      .send({ coverLetter: 'Design background.' });
+
+    const res = await request(app)
+      .get(`/api/v1/jobs/${jobId}/applicants`)
+      .set('Authorization', `Bearer ${recruiterToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.applications).toHaveLength(2);
+    for (const app of res.body.applications) {
+      expect(app.scored).toBe(true);
+      expect(typeof app.score).toBe('number');
+    }
+    expect(res.body.applications[0].score).toBeGreaterThanOrEqual(res.body.applications[1].score);
+  });
+
+  it('puts an applicant with no skills and no bio last, unscored', async () => {
+    const { token: seeker1Token, userId: seeker1Id } = await registerAndLogin('jobSeeker', 'rank3');
+    const { token: seeker2Token } = await registerAndLogin('jobSeeker', 'rank4');
+
+    await User.findByIdAndUpdate(seeker1Id, { skills: ['Node.js', 'Express', 'MongoDB'] });
+    // seeker2 keeps default empty skills/bio — can't be scored
+
+    await request(app)
+      .post(`/api/v1/applications/${jobId}/apply`)
+      .set('Authorization', `Bearer ${seeker1Token}`)
+      .send({ coverLetter: 'Strong backend fit.' });
+    await request(app)
+      .post(`/api/v1/applications/${jobId}/apply`)
+      .set('Authorization', `Bearer ${seeker2Token}`)
+      .send({ coverLetter: 'No skills listed.' });
+
+    const res = await request(app)
+      .get(`/api/v1/jobs/${jobId}/applicants`)
+      .set('Authorization', `Bearer ${recruiterToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.applications).toHaveLength(2);
+    const last = res.body.applications[res.body.applications.length - 1];
+    expect(last.scored).toBe(false);
+    expect(last.score).toBeNull();
+  });
+
+  it('returns 403 for a non-owning recruiter', async () => {
+    const res = await request(app)
+      .get(`/api/v1/jobs/${jobId}/applicants`)
+      .set('Authorization', `Bearer ${otherRecruiterToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 401 without a token', async () => {
+    const res = await request(app).get(`/api/v1/jobs/${jobId}/applicants`);
+    expect(res.status).toBe(401);
+  });
+});
+
 // ─── Cover letter generation ────────────────────────────────────────────────
 
 describe('Jobs — Cover letter (POST /jobs/:id/cover-letter)', () => {

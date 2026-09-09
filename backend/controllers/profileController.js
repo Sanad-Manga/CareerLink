@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const hf = require("../services/hfService");
 const { uploadProfilePicture } = require("../services/uploadService");
+const { getUserEmbedding } = require("../services/embedding");
 
 exports.getProfile = async (req, res, next) => {
   try {
@@ -15,7 +16,10 @@ exports.updateProfile = async (req, res, next) => {
     const updates = {};
 
     if (name !== undefined) updates.name = name;
-    if (bio !== undefined) updates.bio = bio;
+    if (bio !== undefined) {
+      updates.bio = bio;
+      updates.embedding = await getUserEmbedding(req.user.skills, bio);
+    }
 
     if (req.file) {
       const result = await uploadProfilePicture(req.file.buffer, req.user._id);
@@ -181,6 +185,7 @@ exports.extractSkills = async (req, res, next) => {
     const skills = extractSkillsFromText(user.bio);
 
     user.skills = skills;
+    user.embedding = await getUserEmbedding(skills, user.bio);
     await user.save();
 
     return res.status(200).json({ success: true, skills, extracted: skills });
