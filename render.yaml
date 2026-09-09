@@ -1,0 +1,49 @@
+# Render Blueprint — CareerLink backend API.
+# Connect this repo as a Blueprint in the Render dashboard; Render provisions the
+# service below and redeploys on every push to the default branch (autoDeploy).
+# This replaces the former Railway deploy job in .github/workflows/ci.yml.
+#
+# Real values for every `sync: false` var must be set in the Render dashboard —
+# they are intentionally not committed here.
+services:
+  - type: web
+    name: careerlink-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    # `/api-docs/` returns 200 ('/' 302-redirects, so it's a poor health target).
+    healthCheckPath: /api-docs/
+    autoDeploy: true
+    envVars:
+      # Render injects PORT automatically; server.js reads process.env.PORT.
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        sync: false
+      # Optional: max auth requests per 15-min window per IP (default 10).
+      - key: RATE_LIMIT_MAX
+        sync: false
+      # CORS allow-list (see issue #6). Set to include the Vercel frontend URL.
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

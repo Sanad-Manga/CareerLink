@@ -10,7 +10,9 @@ const options = {
       description: 'AI-Powered Career & Talent Platform — Milestone 2',
     },
     servers: [
-      { url: 'https://giu-nexus-api.up.railway.app/api/v1', description: 'Production (Railway)' },
+      // Placeholder — double-check against the URL Render actually assigns once
+      // the service is created (it may not match this exactly).
+      { url: 'https://careerlink-api.onrender.com/api/v1', description: 'Production (Render)' },
       { url: 'http://localhost:5000/api/v1', description: 'Local Development' },
     ],
     components: {
