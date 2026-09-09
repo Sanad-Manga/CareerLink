@@ -14,6 +14,7 @@ const {
   saveJob,
   getSavedJobs,
   generateCoverLetter,
+  getWhyFit,
 } = require('../controllers/jobController');
 
 const { getJobApplicants, applyToJob } = require("../controllers/applicationController");
@@ -477,5 +478,6 @@ router.delete('/:id', protect, authorize('recruiter', 'admin'), deleteJob);
  */
 router.post('/:id/save', protect, authorize('jobSeeker'), saveJob);
 router.post('/:id/cover-letter', protect, authorize('jobSeeker'), aiLimiter, generateCoverLetter);
+router.get('/:id/why-fit', protect, authorize('jobSeeker'), aiLimiter, getWhyFit);
 
 module.exports = router;

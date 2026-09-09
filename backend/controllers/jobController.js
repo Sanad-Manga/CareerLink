@@ -1,6 +1,7 @@
 const JobPost = require('../models/JobPost');
 const Application = require('../models/Application');
 const User = require('../models/User');
+const WhyFit = require('../models/WhyFit');
 const { classifyJobCategory } = require('../services/classificationService');
 const hf = require('../services/hfService');
 const { cosineSimilarity } = require('../services/similarity');
@@ -319,6 +320,57 @@ Applicant Background: ${user.bio}`;
   }
 };
 
+// ─── GET /api/v1/jobs/:id/why-fit ─────────────────────────────────────────────
+const getWhyFit = async (req, res, next) => {
+  try {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    const job = await JobPost.findById(req.params.id);
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
+    const cached = await WhyFit.findOne({ user: req.user._id, job: job._id });
+    if (cached) {
+      return res.status(200).json({ success: true, explanation: cached.explanation, cached: true });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user.bio?.trim() && !user.skills.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Add a bio or skills to your profile to generate a fit explanation.',
+      });
+    }
+
+    const prompt = `In 2-3 short sentences, explain why this candidate is a good fit for this job. Be specific and concise. Write only the explanation, no greeting or sign-off.
+
+Job Title: ${job.title}
+Company: ${job.company}
+Job Description: ${job.description}
+Requirements: ${job.requirements.join(', ')}
+
+Candidate Skills: ${user.skills.join(', ') || 'none listed'}
+Candidate Bio: ${user.bio || 'none provided'}`;
+
+    const result = await hf.chatCompletion({
+      model: 'Qwen/Qwen2.5-7B-Instruct',
+      provider: 'hf-inference',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.7,
+    });
+
+    const explanation = result.choices[0].message.content.trim();
+
+    await WhyFit.create({ user: req.user._id, job: job._id, explanation });
+
+    res.status(200).json({ success: true, explanation, cached: false });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getJobs,
   getMyJobs,
@@ -330,4 +382,5 @@ module.exports = {
   saveJob,
   getSavedJobs,
   generateCoverLetter,
+  getWhyFit,
 };
