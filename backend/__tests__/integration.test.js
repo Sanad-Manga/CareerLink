@@ -260,6 +260,17 @@ describe('Auth — Logout (Mongo-backed JWT blacklist)', () => {
   });
 });
 
+// ─── Security headers ───────────────────────────────────────────────────────
+
+describe('Security headers', () => {
+  it('sets a Content-Security-Policy with default-src \'self\' on a normal route', async () => {
+    const res = await request(app).get('/api/v1/jobs');
+    const csp = res.headers['content-security-policy'];
+    expect(csp).toBeDefined();
+    expect(csp).toMatch(/default-src 'self'/);
+  });
+});
+
 // ─── Create Job with AI Category ─────────────────────────────────────────────
 
 describe('Jobs — Create with AI category', () => {
