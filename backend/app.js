@@ -16,14 +16,28 @@ const errorHandler = require("./middleware/ErrorHandler");
 
 const app = express();
 
-const ALLOWED_ORIGINS = [
+// Comma-separated list in ALLOWED_ORIGINS; falls back to the local dev origins
+// when the env var is unset.
+const DEFAULT_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://giu-nexus-beta.vercel.app',
 ];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : DEFAULT_ORIGINS;
 
 app.set('trust proxy', 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // swagger-ui injects its styles inline at runtime and renders icons as
+      // data: URIs; its scripts are all served same-origin from /api-docs.
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+    },
+  },
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
