@@ -17,9 +17,9 @@ const transporter = nodemailer.createTransport({
 const sendOtpEmail = async (email, otp) => {
   try {
     const mailOptions = {
-      from: `"GIU Nexus" <${process.env.EMAIL_USER}>`,
+      from: `"CareerLink" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Your Password Reset Code — GIU Nexus',
+      subject: 'Your Password Reset Code — CareerLink',
       html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -34,9 +34,9 @@ const sendOtpEmail = async (email, otp) => {
           <td bgcolor="#1E40AF" style="background:linear-gradient(135deg,#1E40AF,#2563EB);padding:32px 40px;text-align:center;">
             <table cellpadding="0" cellspacing="0" style="display:inline-table;margin:0 auto;">
               <tr>
-                <td bgcolor="#3B5FBF" style="width:40px;height:40px;background:#3B5FBF;border-radius:10px;text-align:center;vertical-align:middle;font-size:15px;font-weight:800;color:#ffffff;font-family:Arial,sans-serif;">GN</td>
+                <td bgcolor="#3B5FBF" style="width:40px;height:40px;background:#3B5FBF;border-radius:10px;text-align:center;vertical-align:middle;font-size:15px;font-weight:800;color:#ffffff;font-family:Arial,sans-serif;">CL</td>
                 <td style="width:10px;"></td>
-                <td style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:Arial,sans-serif;white-space:nowrap;">GIU <span style="color:#34D399;">Nexus</span></td>
+                <td style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:Arial,sans-serif;white-space:nowrap;">Career<span style="color:#34D399;">Link</span></td>
               </tr>
             </table>
           </td>
@@ -48,7 +48,7 @@ const sendOtpEmail = async (email, otp) => {
             <p style="margin:0 0 8px;font-size:14px;color:#64748B;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">Password Reset</p>
             <h1 style="margin:0 0 20px;font-size:26px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">Your one-time code</h1>
             <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.6;">
-              We received a request to reset your GIU Nexus password. Use the code below to continue. It expires in <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
+              We received a request to reset your CareerLink password. Use the code below to continue. It expires in <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
             </p>
 
             <!-- OTP Box -->
@@ -69,8 +69,8 @@ const sendOtpEmail = async (email, otp) => {
         <tr>
           <td style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:20px 40px;text-align:center;">
             <p style="margin:0;font-size:12px;color:#94A3B8;">
-              © ${new Date().getFullYear()} GIU Nexus · AI-Powered Career Platform<br>
-              German International University
+              © ${new Date().getFullYear()} CareerLink · AI-Powered Career Platform<br>
+              This is an automated message — please don't reply to it.
             </p>
           </td>
         </tr>
