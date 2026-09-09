@@ -260,6 +260,24 @@ describe('Auth — Logout (Mongo-backed JWT blacklist)', () => {
   });
 });
 
+// ─── CORS allow-list ────────────────────────────────────────────────────────
+
+describe('CORS allow-list', () => {
+  it('reflects a default localhost origin', async () => {
+    const res = await request(app)
+      .get('/api/v1/jobs')
+      .set('Origin', 'http://localhost:5173');
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+  });
+
+  it('does not allow a non-listed origin', async () => {
+    const res = await request(app)
+      .get('/api/v1/jobs')
+      .set('Origin', 'http://evil.example.com');
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});
+
 // ─── Create Job with AI Category ─────────────────────────────────────────────
 
 describe('Jobs — Create with AI category', () => {

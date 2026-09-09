@@ -152,6 +152,7 @@ Starts the API and a local MongoDB container together. API available at `http://
 | `SEED_ADMIN_EMAIL` | Admin email for `npm run seed` — required, the seed script refuses to run without it |
 | `SEED_ADMIN_PASSWORD` | Admin password for `npm run seed`, min 8 chars — required |
 | `RATE_LIMIT_MAX` | Max auth requests per 15-min window per IP (default: 10) |
+| `ALLOWED_ORIGINS` | Comma-separated CORS allow-list (default: `http://localhost:5173,http://localhost:3000`) |
 | `HF_TOKEN` | HuggingFace API token |
 | `EMAIL_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
 | `EMAIL_PORT` | SMTP port (e.g. `587`) |

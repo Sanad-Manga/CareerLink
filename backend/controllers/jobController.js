@@ -382,5 +382,4 @@ module.exports = {
   saveJob,
   getSavedJobs,
   generateCoverLetter,
-  getWhyFit,
 };
